@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gene Expression Bootstrapper</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #EEF1F8;
+  --surface:   #FFFFFF;
+  --border:    #D8DDED;
+  --ink:       #0A0E1F;
+  --ink2:      #4A5270;
+  --ink3:      #8A91AD;
+  --teal:      #4F46E5;
+  --teal-l:    #EFEEFD;
+  --teal-d:    #3730A3;
+  --coral:     #7C3AED;
+  --coral-l:   #F5F3FF;
+  --r:         10px;
+  --shadow:    0 1px 4px rgba(10,14,31,0.07);
+  --shadow-md: 0 4px 16px rgba(10,14,31,0.12);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Copyright bar */
+.copyright-bar {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.copyright-bar a { color: var(--ink2); text-decoration: none; }
+.copyright-bar a:hover { color: var(--ink); }
+
+/* Header */
+header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.header-left { flex: 0 0 auto; }
+.header-tag {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--coral);
+  margin-bottom: 0.25rem;
+  display: block;
+}
+header h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+}
+header h1 em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--teal);
+}
+.header-rule {
+  width: 32px; height: 3px;
+  background: var(--coral);
+  border-radius: 2px;
+  margin-top: 0.4rem;
+}
+.header-sub {
+  font-size: 16px;
+  color: var(--ink2);
+  line-height: 1.6;
+  flex: 1;
+  min-width: 180px;
+}
+
+/* 2x2 grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  flex: 1;
+}
+
+/* Column cards */
+.col-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+}
+.col-label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.col-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Optional block */
+.opt-tag {
+  background: var(--coral-l);
+  color: var(--coral);
+  border: 1px solid var(--coral);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 0.5rem;
+}
+.opt-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+}
+.opt-desc {
+  font-size: 16px;
+  color: var(--ink2);
+  margin-bottom: 0.85rem;
+  line-height: 1.5;
+}
+
+/* Slider */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.slider-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--teal);
+  min-width: 58px;
+  text-align: right;
+  letter-spacing: -0.02em;
+}
+input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--teal);
+  cursor: pointer;
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 2px var(--teal);
+}
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 0.4rem;
+}
+.slider-note {
+  font-size: 13px;
+  color: var(--ink3);
+  margin-top: 0.5rem;
+}
+
+/* Steps */
+.step-num {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  background: transparent;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+.step-num.done {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+.step-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.2rem;
+}
+.step-desc {
+  font-size: 16px;
+  color: var(--ink2);
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+/* Drop zone */
+.drop-zone {
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s;
+  background: var(--bg);
+}
+.drop-zone:hover {
+  border-color: var(--teal);
+  background: var(--teal-l);
+}
+.drop-zone input[type="file"] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+.drop-icon { font-size: 1.4rem; margin-bottom: 0.3rem; display: block; }
+.drop-text { font-size: 16px; color: var(--ink2); line-height: 1.5; }
+.drop-text strong { color: var(--ink); display: block; font-weight: 600; }
+.drop-text small { color: var(--ink3); font-size: 13px; margin-top: 2px; display: block; }
+
+/* File chips */
+.file-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--teal-l);
+  border: 1px solid #B2D4D4;
+  color: var(--teal-d);
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.mismatch-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #FFF7ED;
+  border: 1.5px solid #FED7AA;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+  font-size: 14px;
+  color: #9A3412;
+  line-height: 1.5;
+}
+
+/* Bottom bar */
+.bottom-bar {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: center;
+}
+.run-col {
+  display: flex;
+  justify-content: center;
+  grid-column: 1 / -1;
+}
+.btn-run {
+  width: 40%;
+  padding: 0.65rem 1.25rem;
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--r);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-run:hover:not(:disabled) {
+  background: var(--teal);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.btn-run:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* Progress */
+.progress-section {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 0.9rem 1.25rem;
+  box-shadow: var(--shadow);
+  flex-direction: column;
+  grid-column: 1 / -1;
+}
+.progress-header {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 16px; margin-bottom: 0.5rem;
+}
+.progress-label { font-weight: 600; color: var(--ink); }
+.progress-pct   { color: var(--ink2); font-variant-numeric: tabular-nums; }
+.progress-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), #4A9F9F);
+  border-radius: 3px;
+  transition: width 0.45s ease;
+  width: 0%;
+}
+.log-box { display: none; }
+
+/* Results */
+.results-section {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow);
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  grid-column: 1 / -1;
+}
+.stats-summary {
+  font-size: 14px;
+  color: var(--ink3);
+  font-weight: 500;
+}
+.btn-download {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0.7rem 1.25rem;
+  background: var(--teal-l);
+  color: var(--teal-d);
+  border: 1.5px solid var(--teal);
+  border-radius: var(--r);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px; font-weight: 600;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: all 0.15s;
+}
+.btn-download:hover:not(:disabled) {
+  background: var(--teal);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.btn-download:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+.download-progress-wrap { margin-top: 0.65rem; display: none; }
+.download-progress-wrap.show { display: block; }
+.download-progress-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.download-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), #6B8FCF);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+.download-progress-label { font-size: 13px; color: var(--ink2); margin-top: 0.3rem; text-align: center; }
+@keyframes indeterminate {
+  0%   { left: -40%; width: 40%; }
+  60%  { left: 100%; width: 40%; }
+  100% { left: 100%; width: 40%; }
+}
+.download-progress-fill.indeterminate {
+  position: relative;
+  width: 40%;
+  animation: indeterminate 1.4s ease infinite;
+}
+
+.sample-link {
+  display: block;
+  width: fit-content;
+  margin: 0.35rem 0 0.75rem;
+  font-size: 15px;
+  color: var(--teal);
+  text-decoration: none;
+  font-weight: 600;
+}
+.sample-link:hover { color: var(--teal-d); text-decoration: underline; }
+.drop-text .file-type-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--ink3);
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+}
+
+.hidden { display: none !important; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Copyright bar -->
+  <div class="copyright-bar">
+    © 2026 A*STAR Bioinformatics Institute &nbsp;·&nbsp;
+    Free for academic research and education &nbsp;·&nbsp;
+    Commercial licensing: <a href="mailto:yeohc@a-star.edu.sg">yeohc@a-star.edu.sg</a>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <span class="header-tag">MeMo Modelling · A*STAR</span>
+      <h1>Gene Expression <em>Bootstrapper</em></h1>
+      <div class="header-rule"></div>
+    </div>
+    <p class="header-sub">Fills in missing expression values for unmapped genes by sampling from the same metabolic subsystem. Output serves as input for MeMo.</p>
+  </header>
+
+  <!-- 2x2 grid -->
+  <div class="main-grid">
+
+    <!-- Top-left: Optional -->
+    <div class="col-card">
+      <div class="col-label">Parameters</div>
+      <div class="opt-tag">Optional</div>
+      <div class="opt-title">Bootstrap iterations</div>
+      <div class="opt-desc">Number of output CSV files to generate. Default of 1,000 is recommended.</div>
+      <div class="slider-row">
+        <input type="range" id="batchSlider" min="100" max="5000" step="100" value="1000"
+          oninput="updateSlider(this.value)"/>
+        <div class="slider-val" id="batchVal">1,000</div>
+      </div>
+      <div class="slider-labels"><span>100</span><span>5,000</span></div>
+      <div class="slider-note">Higher values = more robust results, longer processing time.</div>
+    </div>
+
+    <!-- Top-right: Step 1 -->
+    <div class="col-card">
+      <div class="col-label">Step 1</div>
+      <div class="step-title">Prefixed model files</div>
+      <div class="step-desc">One file per species — output from Step 2 of SBML2FEA.</div>
+      <a href="/sample_model.xlsx" download="LC_model.xlsx" class="sample-link">⬇ Download sample file</a>
+      <div class="drop-zone" id="dropModel">
+        <input type="file" id="fileModel" accept=".xlsx" multiple onchange="handleFiles('model', this.files)"/>
+        <span class="drop-icon">📄</span>
+        <div class="drop-text">
+          <strong>Drop file here</strong>
+          or click to browse
+          <small class="file-type-hint">.xlsx</small>
+        </div>
+      </div>
+      <div class="file-chips" id="chipsModel"></div>
+    </div>
+
+    <!-- Bottom-left: Step 2 -->
+    <div class="col-card">
+      <div class="col-label">Step 2</div>
+      <div class="step-title">Identifier mapping files</div>
+      <div class="step-desc">One file per species, in the same order as model files — output from Step 3 of SBML2FEA.</div>
+      <a href="/sample_mapping.xlsx" download="LC_mapping.xlsx" class="sample-link">⬇ Download sample file</a>
+      <div class="drop-zone" id="dropMapping">
+        <input type="file" id="fileMapping" accept=".xlsx" multiple onchange="handleFiles('mapping', this.files)"/>
+        <span class="drop-icon">📄</span>
+        <div class="drop-text">
+          <strong>Drop file here</strong>
+          or click to browse
+          <small class="file-type-hint">.xlsx</small>
+        </div>
+      </div>
+      <div class="file-chips" id="chipsMapping"></div>
+      <div class="mismatch-warning hidden" id="prefixWarning"></div>
+    </div>
+
+    <!-- Bottom-right: Step 3 -->
+    <div class="col-card">
+      <div class="col-label">Step 3</div>
+      <div class="step-title">Combined gene expression file</div>
+      <div class="step-desc">Normalised gene expression counts for all species and samples from your metatranscriptomics data.</div>
+      <a href="/sample_combined_geneExpr.csv" download="combined_geneExpr.csv" class="sample-link">⬇ Download sample file</a>
+      <div class="drop-zone" id="dropExpr">
+        <input type="file" id="fileExpr" accept=".csv" onchange="handleFiles('expr', this.files)"/>
+        <span class="drop-icon">📄</span>
+        <div class="drop-text">
+          <strong>Drop file here</strong>
+          or click to browse · single file only
+          <small class="file-type-hint">.csv</small>
+        </div>
+      </div>
+      <div class="file-chips" id="chipsExpr"></div>
+    </div>
+
+  </div><!-- /main-grid -->
+
+  <!-- Bottom bar -->
+  <div class="bottom-bar">
+    <div class="run-col">
+      <button class="btn-run" id="runBtn" onclick="startJob()">Generate Bootstrapped Files</button>
+    </div>
+
+    <div class="progress-section hidden" id="progressSection">
+      <div class="progress-header">
+        <span class="progress-label" id="progressLabel">Starting…</span>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressBar"></div>
+      </div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+
+    <div class="results-section hidden" id="resultsSection">
+      <div class="stats-summary"><span id="statFiles">—</span> files generated &nbsp;·&nbsp; <span id="statSpecies">—</span> species processed</div>
+      <button class="btn-download" id="downloadBtn" onclick="triggerDownload()">
+        ⬇ Download Bootstrapped ZIP
+      </button>
+      <div class="download-progress-wrap" id="dlProgressWrap">
+        <div class="download-progress-track">
+          <div class="download-progress-fill indeterminate" id="dlProgressFill"></div>
+        </div>
+        <div class="download-progress-label" id="dlProgressLabel">Preparing ZIP…</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const state = { model: [], mapping: [], expr: [] };
+
+function updateSlider(val) {
+  document.getElementById('batchVal').textContent = Number(val).toLocaleString();
+  const pct = (val - 100) / (5000 - 100) * 100;
+  document.getElementById('batchSlider').style.background =
+    `linear-gradient(to right, var(--teal) ${pct}%, var(--border) ${pct}%)`;
+}
+
+window.addEventListener('DOMContentLoaded', () => updateSlider(1000));
+
+function getPrefix(filename) {
+  return filename.split('_')[0].toLowerCase();
+}
+
+function checkPrefixMatch() {
+  const warn = document.getElementById('prefixWarning');
+  if (!state.model.length || !state.mapping.length) {
+    warn.classList.add('hidden');
+    return true;
+  }
+  const modelPrefixes   = state.model.map(f => getPrefix(f.name)).sort();
+  const mappingPrefixes = state.mapping.map(f => getPrefix(f.name)).sort();
+  const mismatch =
+    modelPrefixes.length !== mappingPrefixes.length ||
+    modelPrefixes.some((p, i) => p !== mappingPrefixes[i]);
+  if (mismatch) {
+    warn.innerHTML = `⚠️ <span>Species prefix mismatch — model files (${modelPrefixes.join(', ')}) don't match mapping files (${mappingPrefixes.join(', ')}). Make sure files are uploaded in the same order and belong to the same species.</span>`;
+    warn.classList.remove('hidden');
+    return false;
+  }
+  warn.classList.add('hidden');
+  return true;
+}
+
+function handleFiles(type, files) {
+  const newFiles = Array.from(files);
+  // Accumulate — skip duplicates by name
+  newFiles.forEach(f => {
+    if (!state[type].find(e => e.name === f.name)) {
+      state[type].push(f);
+    }
+  });
+  const key = { model: 'chipsModel', mapping: 'chipsMapping', expr: 'chipsExpr' }[type];
+  const num  = { model: 'num1', mapping: 'num2', expr: 'num3' }[type];
+  document.getElementById(key).innerHTML =
+    state[type].map(f => `<div class="chip">✓ ${f.name} <span style="cursor:pointer;margin-left:3px" onclick="removeFile('${type}','${f.name}')">×</span></div>`).join('');
+  const el = document.getElementById(num); if (el) el.classList.add('done');
+  checkPrefixMatch();
+}
+
+function removeFile(type, name) {
+  state[type] = state[type].filter(f => f.name !== name);
+  const key = { model: 'chipsModel', mapping: 'chipsMapping', expr: 'chipsExpr' }[type];
+  const num  = { model: 'num1', mapping: 'num2', expr: 'num3' }[type];
+  document.getElementById(key).innerHTML =
+    state[type].map(f => `<div class="chip">✓ ${f.name} <span style="cursor:pointer;margin-left:3px" onclick="removeFile('${type}','${f.name}')">×</span></div>`).join('');
+  if (!state[type].length) document.getElementById(num).classList.remove('done');
+  checkPrefixMatch();
+}
+
+['dropModel','dropMapping','dropExpr'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('dragover',  e => { e.preventDefault(); el.style.borderColor = 'var(--teal)'; });
+  el.addEventListener('dragleave', () => el.style.borderColor = '');
+  el.addEventListener('drop',      () => el.style.borderColor = '');
+});
+
+let activeJobId = null;
+
+async function startJob() {
+  if (!state.model.length)   { alert('Please upload at least one model file.'); return; }
+  if (!state.mapping.length) { alert('Please upload at least one mapping file.'); return; }
+  if (!state.expr.length)    { alert('Please upload a gene expression CSV.'); return; }
+  if (!checkPrefixMatch())   { alert('Fix the species prefix mismatch before running.'); return; }
+
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('progressSection').classList.remove('hidden');
+  document.getElementById('progressSection').style.display = 'flex';
+  document.getElementById('resultsSection').classList.add('hidden');
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressPct').textContent = '0%';
+  document.getElementById('progressLabel').textContent = 'Starting…';
+
+  const fd = new FormData();
+  state.model.forEach(f   => fd.append('model_files',   f));
+  state.mapping.forEach(f => fd.append('mapping_files', f));
+  fd.append('expr_file',   state.expr[0]);
+  fd.append('batch_count', document.getElementById('batchSlider').value);
+
+  let jobId;
+  try {
+    const res = await fetch('/api/process', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    jobId = (await res.json()).job_id;
+    activeJobId = jobId;
+    appendLog('Files received. Starting bootstrap…', 'info');
+  } catch (e) {
+    appendLog('Error: ' + e.message, 'err');
+    document.getElementById('runBtn').disabled = false;
+    return;
+  }
+
+  const sse = new EventSource(`/api/progress/${jobId}`);
+
+  sse.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if (d.message) appendLog(d.message, d.type || '');
+    if (d.progress !== undefined) {
+      document.getElementById('progressBar').style.width = d.progress + '%';
+      document.getElementById('progressPct').textContent = d.progress + '%';
+      const cleanLabels = ['Starting…', 'Files received. Starting bootstrap…', 'Writing output files…', 'Compressing output files…', 'Processing…'];
+      if (d.label && cleanLabels.some(l => d.label.startsWith(l.split('…')[0]))) {
+        document.getElementById('progressLabel').textContent = d.label;
+      } else if (d.progress > 0 && d.progress < 100) {
+        document.getElementById('progressLabel').textContent = 'Processing…';
+      }
+    }
+    if (d.status === 'done') {
+      sse.close();
+      document.getElementById('statFiles').textContent   = (d.file_count    || '—').toLocaleString();
+      document.getElementById('statSpecies').textContent =  d.species_count || '—';
+      document.getElementById('downloadBtn').dataset.jobId = jobId;
+      document.getElementById('progressSection').classList.add('hidden');
+      document.getElementById('resultsSection').classList.remove('hidden');
+      document.getElementById('resultsSection').style.display = 'flex';
+      document.getElementById('runBtn').disabled = false;
+    }
+    if (d.status === 'error') {
+      sse.close();
+      appendLog('Fatal error: ' + d.error, 'err');
+      document.getElementById('runBtn').disabled = false;
+    }
+  };
+
+  sse.onerror = () => {
+    sse.close();
+    appendLog('Connection lost. Check logs.', 'err');
+    document.getElementById('runBtn').disabled = false;
+  };
+}
+
+async function triggerDownload() {
+  const jobId = document.getElementById('downloadBtn').dataset.jobId;
+  if (!jobId) return;
+
+  const btn   = document.getElementById('downloadBtn');
+  const wrap  = document.getElementById('dlProgressWrap');
+  const fill  = document.getElementById('dlProgressFill');
+  const label = document.getElementById('dlProgressLabel');
+
+  btn.disabled    = true;
+  btn.textContent = 'Preparing download…';
+  wrap.classList.add('show');
+  fill.classList.add('indeterminate');
+  label.textContent = 'Fetching ZIP from server…';
+
+  try {
+    const res = await fetch(`/api/download/${jobId}`);
+    if (!res.ok) throw new Error('Download failed');
+
+    const contentLength = res.headers.get('Content-Length');
+    let blob;
+
+    if (contentLength) {
+      const total = parseInt(contentLength);
+      const chunks = [];
+      let received = 0;
+      const reader = res.body.getReader();
+      fill.classList.remove('indeterminate');
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        const pct = Math.min(Math.round(received / total * 100), 99);
+        fill.style.width = pct + '%';
+        label.textContent = `Downloading… ${pct}%`;
+      }
+      blob = new Blob(chunks, { type: 'application/zip' });
+    } else {
+      label.textContent = 'Downloading…';
+      blob = await res.blob();
+    }
+
+    fill.classList.remove('indeterminate');
+    fill.style.width = '100%';
+    label.textContent = 'Done!';
+
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href = url; a.download = 'geneExpr_bootstrapped.zip';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setTimeout(() => {
+      btn.disabled    = false;
+      btn.textContent = '⬇ Download Bootstrapped ZIP';
+      wrap.classList.remove('show');
+      fill.style.width = '0%';
+    }, 2000);
+
+  } catch (e) {
+    btn.disabled    = false;
+    btn.textContent = '⬇ Download Bootstrapped ZIP';
+    wrap.classList.remove('show');
+    alert('Download failed: ' + e.message);
+  }
+}
+
+function appendLog(text, cls = '') {
+  const box = document.getElementById('logBox');
+  const span = document.createElement('span');
+  if (cls) span.className = 'log-' + cls;
+  span.textContent = '› ' + text + '\n';
+  box.appendChild(span);
+  box.scrollTop = box.scrollHeight;
+}
+</script>
+</body>
+</html>

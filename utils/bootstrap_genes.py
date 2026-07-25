@@ -16,6 +16,23 @@ def extract_genes_from_gpa(gpa_str):
     keywords = {'or', 'and', 'not'}
     return [t for t in tokens if t.lower() not in keywords]
 
+def parse_genes(gene_value):
+    """Parse either a stringified gene list or a boolean gene expression."""
+    if pd.isna(gene_value) or str(gene_value).strip() == "":
+        return []
+
+    if isinstance(gene_value, (list, tuple, set)):
+        return list(gene_value)
+
+    try:
+        parsed = ast.literal_eval(str(gene_value))
+    except (ValueError, SyntaxError):
+        return extract_genes_from_gpa(gene_value)
+
+    if isinstance(parsed, (list, tuple, set)):
+        return list(parsed)
+    return extract_genes_from_gpa(parsed)
+
 def read_combined_geneExpr(combined_geneExpr_filename):
     if not os.path.isfile(combined_geneExpr_filename):
         raise FileNotFoundError(f"Missing combined normalized count file, expected at {combined_geneExpr_filename}")
@@ -28,13 +45,11 @@ def is_real_gene_with_mapping(gene):
 def read_system_gene(model_pre_filename):
     rxn_df = read_model_excel(model_pre_filename, "Reactions")
 
-    # Support 'genes' (stringified-list format) or fall back to 'gpaAssociation' (string format)
+    # Support both stringified lists and boolean expressions in 'genes'.
     if "genes" in rxn_df.columns:
         gene_col = "genes"
-        use_ast = True
     elif "gpaAssociation" in rxn_df.columns:
         gene_col = "gpaAssociation"
-        use_ast = False
     else:
         raise ValueError(
             "Reactions sheet must have a 'genes' or 'gpaAssociation' column — "
@@ -45,10 +60,7 @@ def read_system_gene(model_pre_filename):
     missing_gene_system_dict = {}
     all_genes_set = set()
     for system, gene_list_raw in zip(rxn_df["system"], rxn_df[gene_col]):
-        if use_ast:
-            gene_list = ast.literal_eval(gene_list_raw)
-        else:
-            gene_list = extract_genes_from_gpa(gene_list_raw)
+        gene_list = parse_genes(gene_list_raw)
 
         if system != "" and system not in system_genes_dict:
             system_genes_dict[system] = set()
@@ -64,22 +76,23 @@ def read_system_gene(model_pre_filename):
     missing_gene_system_dict = dict(sorted(missing_gene_system_dict.items()))
     return system_genes_dict, missing_gene_system_dict, all_genes_set
 
-# def map_genes(mapping_dict, system_genes_dict, all_genes_set):
-#     system_genes_dict_new = {}
-#     for system, gene_set in system_genes_dict.items():
-#         gene_set_new = set()
-#         for gene in gene_set:
-#             if gene in mapping_dict: # TODO: if not print warning
-#                 gene_set_new.add(mapping_dict[gene])
-#         if gene_set_new:
-#             system_genes_dict_new[system] = gene_set_new
+def map_genes(mapping_dict, system_genes_dict, missing_gene_system_dict, all_genes_set):
+    """Map model gene tags to expression IDs and retain unmapped tags for bootstrapping."""
+    mapped_system_genes = {}
+    missing_genes = dict(missing_gene_system_dict)
 
-#     all_genes_set_new = set()
-#     for gene in all_genes_set:
-#         if gene in mapping_dict:
-#             all_genes_set_new.add(mapping_dict[gene])
+    for system, gene_set in system_genes_dict.items():
+        mapped_genes = set()
+        for gene in gene_set:
+            if gene in mapping_dict:
+                mapped_genes.add(mapping_dict[gene])
+            else:
+                missing_genes.setdefault(gene, system)
+        if mapped_genes:
+            mapped_system_genes[system] = mapped_genes
 
-#     return system_genes_dict_new, all_genes_set_new
+    mapped_all_genes = {mapping_dict[gene] for gene in all_genes_set if gene in mapping_dict}
+    return mapped_system_genes, dict(sorted(missing_genes.items())), mapped_all_genes
 
 def filter_geneExpr_df(combined_geneExpr_df, all_genes_set):
     geneExpr_df = combined_geneExpr_df.loc[combined_geneExpr_df.index.isin(all_genes_set)]
@@ -148,8 +161,10 @@ def bootstrap_genes(model_pre_filenames, mapping_filenames, species_prefixes, co
         # all_genes_set: set of all the real genes with mapping used in the model of that species
         system_genes_dict, missing_gene_system_dict, all_genes_set = read_system_gene(model_pre_filename)
 
-        # map gene from model to gene in annotation(used in geneExpr file)
-        # system_genes_dict, all_genes_set = map_genes(mapping_dict, system_genes_dict, all_genes_set)
+        # Map model tags to the annotation IDs used in the expression file.
+        system_genes_dict, missing_gene_system_dict, all_genes_set = map_genes(
+            mapping_dict, system_genes_dict, missing_gene_system_dict, all_genes_set
+        )
 
         # filter to get only geneExprs for that species
         geneExpr_df = filter_geneExpr_df(combined_geneExpr_df, all_genes_set)
